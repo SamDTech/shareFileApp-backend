@@ -5,7 +5,7 @@ import AppError from "../utils/appError";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 import File from "../model/file";
 import https from "https";
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
 import createEmailTemplate from "../utils/createEmailTemplate";
 
 const router = Router();
@@ -97,12 +97,20 @@ router.post(
     //1 validate request
     const { id, emailFrom, emailTo } = req.body;
 
+    if (!id || !emailFrom || !emailTo) {
+      return next(new AppError(400, "All fields are required"));
+    }
+
     //2 check if file exists
     const file = await File.findById(id);
 
-    if (!file) {
+    if (!file) { 
       return next(new AppError(404, "File not found"));
     }
+
+     if (file.sender) {
+       return next(new AppError(400, "File is already sent"));
+     }
 
     //3 create the transporter
     let transporter = nodemailer.createTransport({
@@ -110,7 +118,7 @@ router.post(
       host: process.env.SENDINBLUE_SMTP_HOST,
       port: process.env.SENDINBLUE_SMTP_PORT,
       secure: false, // true for 465, false for other ports
-      auth: { 
+      auth: {
         user: process.env.SENDINBLUE_SMTP_USER, // generated ethereal user
         pass: process.env.SENDINBLUE_SMTP_PASSWORD, // generated ethereal password
       },
